@@ -1,0 +1,30 @@
+{
+  "name": "cousework2",
+  "version": "1.0.0",
+  "description": "SSL Protocol",
+  "main": "client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node client.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "cookie-parser": "^1.4.3",
+    "crypto": "^1.0.1",
+    "ejs": "^2.5.7",
+    "express": "^4.16.2",
+    "express-stormpath": "^4.0.0",
+    "fs": "0.0.1-security",
+    "http": "0.0.0",
+    "http-post": "^0.1.1",
+    "node-rsa": "^0.4.2",
+    "path": "^0.12.7",
+    "pem": "^1.12.3",
+    "pug": "^2.0.0-rc.4",
+    "request": "^2.83.0",
+    "serve-favicon": "^2.4.5",
+    "x509": "^0.3.3"
+  }
+}
