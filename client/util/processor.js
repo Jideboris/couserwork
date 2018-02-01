@@ -3,18 +3,14 @@ const {
     decrypt
 } = require('./symmetricengine')
 const rsaWrapper = require('./rsa-wrapper')
-const path = require('path');
+const path = require('path')
 const pem = require('pem')
-const fs = require('fs');
-const request = require('request');
-
-crypto = require('crypto');
-
-
-const filePathCert = path.resolve('./public/keys', 'server' + '.key')
-const publicKeyPath = path.resolve('./public/keys', 'certificate' + '.cert')
-const publicK = path.resolve('./public/keys', 'testing' + '.cert')
-
+const fs = require('fs')
+const request = require('request')
+const crypto = require('crypto')
+const filePathCert = path.resolve('./public/keys', 'Alice' + '.key')
+const publicKeyPath = path.resolve('./public/keys', 'Alice' + '.cert')
+ 
 const processors = {};
 
 function generatecert() {
@@ -48,7 +44,7 @@ function postpublickeytotrent(key, from, to) {
             body: myJSONObject
         }, (error, response, body) => {
             if (error) {
-                reject(new Error('Failed to load page, status code: ' + response.statusCode));
+                reject(error)
             }
             resolve(response)
         })
