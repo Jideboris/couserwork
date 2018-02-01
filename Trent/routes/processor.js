@@ -4,11 +4,6 @@ const fs = require('fs');
 
 const crypto = require('crypto');
 
-const rsaWrapper = require('../utility/rsa-wrapper');
-const {
-    encrypt
-} = require('../utility/symmetricengine');
-
 
 const filePathCert = path.resolve('./public/keys', 'server' + '.key')
 
@@ -121,6 +116,7 @@ function encryptwithpublickey(publicKey, data) {
 }
 
 module.exports = {
-    preparestorepublickeys: preparestorepublickeys
+    preparestorepublickeys: preparestorepublickeys,
+    storepublickeys:storepublickeys
 
 }

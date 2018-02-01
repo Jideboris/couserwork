@@ -8,9 +8,6 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 const path = require('path');
 
-
-
-const rsaWrapper = require('./utility/rsa-wrapper');
 const processor = require('./routes/processor');
 
 
@@ -31,7 +28,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 //app.get('/api/v1/storepublickey', digcert.getdigitalcert);
 
 app.post('/api/v1/storepublickey', processor.preparestorepublickeys)
-app.post('api/v1/frompublickey', processor.storepublickeys)
+app.post('/api/v1/frompublickey', processor.storepublickeys)
 
 // If no route is matched by now, it must be a 404
 app.use(function (req, res, next) {
