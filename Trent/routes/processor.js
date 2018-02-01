@@ -1,58 +1,12 @@
-const path = require('path');
+const path = require('path')
 const pem = require('pem')
-const fs = require('fs');
-
-const crypto = require('crypto');
-
-
+const fs = require('fs')
+const crypto = require('crypto')
 const filePathCert = path.resolve('./public/keys', 'server' + '.key')
 
-const algoritmn = 'AES-256-CBC';
-const hmacalgo = 'SHA256';
+const encryptionHelper = require("./cryptoengine")
 
-function encryptwithsymmetrickey(data, symmetric_key, hmackey) {
-
-    var IV = new Buffer(crypto.randomBytes(16))
-    var cipher_text;
-    var hmac;
-    var encryptor;
-    console.log('here1')
-    encryptor = crypto.createCipheriv(algoritmn, symmetric_key, IV);
-    console.log('here2')
-    encryptor.setEncoding('hex');
-    encryptor.write(data);
-    encryptor.end();
-    console.log('here')
-    cipher_text = encryptor.read();
-
-    hmac = crypto.createHmac(hmacalgo, hmackey);
-    hmac.update(cipher_text);
-    hmac.update(IV.toString('hex'));
-
-    return cipher_text + "$" + IV.toString('hex') + "$" + hmac.digest('hex')
-};
-
-function decryptwithsymmetrickey(ecrypteddata, symmetric_key) {
-    let output = ecrypteddata.split("|");
-    let ct = output[0];
-    let IV = new Buffer(output[1], 'hex');
-
-
-    // chmac = crypto.createHmac(hmacalgo, hmackey);
-    // chmac.update(ct);
-    // chmac.update(IV.toString('hex'));
-
-    // if (!constant_time_compare(chmac.digest('hex'), hmac)) {
-    //     console.log("Encrypted message has been corrupted");
-    //     return null;
-    // }
-
-    let decryptor = crypto.createDecipheriv(algoritmn, symmetric_key, IV);
-    decryptor.update(ct, 'hex', 'utf-8');
-    return decryptor.final('utf-8');
-
-
-};
+var algorithm = encryptionHelper.CIPHERS.AES_256
 
 function storepublickeys(req, res) {
     try {
@@ -82,21 +36,28 @@ function preparestorepublickeys(req, res) {
         fs.writeFileSync(publickeypath, key)
 
         let sessionkey = generateSymmetricKey()
-        fs.writeFileSync(sessionkeypath, sessionkey)
+        let ivkey = generateIV()
+
+        fs.writeFileSync(sessionkeypath, sessionkey.toString('base64'))
+
         let frompublickey = fs.readFileSync(publickeypath)
         //encrypt bob's public key and bob identity
         let topublickey = fs.readFileSync(targetpublickey)
-        let publickeyandbobidentity = topublickey + '|' + to
-        let testing = Buffer.from('publickeyandbobidentity', 'utf8');
-        console.log(testing)
-        let tobeforwardedtobob = encryptwithsymmetrickey(testing, sessionkey, sessionkey)
-        //let foralicetodescryptandforward = tobeforwardedtobob + '|' + sessionkey
-        // let encryptforalicetodecryt = encryptwithpublickey(key, foralicetodescryptandforward)
-        let todecrypted = decryptwithsymmetrickey(publickeyandbobidentity, sessionkey)
-        console.log(tobeforwardedtobob)
-        console.log(todecrypted)
 
-        res.status(200).send(tobeforwardedtobob)
+        let publickeyandbobidentity = topublickey + '|' + to
+
+        var tobeforwardedtobob = encryptionHelper.encryptText(algorithm, sessionkey, ivkey, publickeyandbobidentity, "base64")
+        console.log("encrypted text = " + tobeforwardedtobob)
+        var decText = encryptionHelper.decryptText(algorithm, sessionkey, ivkey, tobeforwardedtobob, "base64")
+        console.log("decrypted text = " + decText)
+          let tobeforwardedtobob = encryptwithsymmetrickey('Jide', sessionkey, generateSymmetricKey())
+        let foralicetodescryptandforward = tobeforwardedtobob + '|' + sessionkey
+        let encryptforalicetodecryt = encryptwithpublickey(key, foralicetodescryptandforward)
+         let todecrypted = decrypt(tobeforwardedtobob)
+         console.log(tobeforwardedtobob)
+         console.log(todecrypted.toString('utf-8'))
+
+         res.status(200).send(tobeforwardedtobob)
 
     } catch (err) {
         console.log('error----->' + err)
@@ -110,9 +71,14 @@ function generateresponse(encryptedtopublickeyandtoidentity, frompublickey) {
 }
 
 function generateSymmetricKey() {
-    var generatedKey = crypto.randomBytes(32); //.toString('base64');
+    var generatedKey = crypto.randomBytes(32) //.toString('base64');
     return generatedKey;
 
+}
+
+function generateIV() {
+    // return new Buffer(crypto.randomBytes(16))
+    return crypto.randomBytes(16) //.toString('base64')
 }
 
 function decryptwithprivatekey(privateKey, data) {
