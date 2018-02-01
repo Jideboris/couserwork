@@ -2,10 +2,10 @@
   "name": "cousework2",
   "version": "1.0.0",
   "description": "SSL Protocol",
-  "main": "server.js",
+  "main": "bob.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node bob.js"
   },
   "author": "Richard",
   "license": "ISC",
@@ -21,6 +21,7 @@
     "openssl": "^1.1.0",
     "path": "^0.12.7",
     "pem": "^1.12.3",
+    "request": "^2.83.0",
     "ssl-utils": "^0.3.0",
     "x509": "^0.3.3"
   }

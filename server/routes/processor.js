@@ -1,19 +1,14 @@
-const path = require('path');
+const path = require('path')
+const request = require('request')
 const pem = require('pem')
-const fs = require('fs');
+const fs = require('fs')
 
-const crypto = require('crypto');
+const crypto = require('crypto')
+const filePathCert = path.resolve('./public/keys', 'bob' + '.key')
+const publicKeyPath = path.resolve('./public/keys', 'bob' + '.cert')
 
-const rsaWrapper = require('../utility/rsa-wrapper');
-const {
-    encrypt
-} = require('../utility/symmetricengine');
-
-
-const filePathCert = path.resolve('./public/keys', 'server' + '.key')
-
-const algoritmn = 'AES-256-CBC';
-const hmacalgo = 'SHA256';
+const algoritmn = 'AES-256-CBC'
+const hmacalgo = 'SHA256'
 
 function encryptwithsymmetrickey(data, symmetric_key) {
 
@@ -41,7 +36,8 @@ function decryptwithsymmetrickey(ecrypteddata, symmetric_key) {
     return decryptor.final('utf-8');
 
 }
-function generatecert() {
+
+function generatecert(req, res) {
     pem.createCertificate({
         days: 365,
         selfSigned: true
@@ -53,14 +49,17 @@ function generatecert() {
         fs.writeFileSync(publicKeyPath, keys.certificate)
 
         storepublickeyontrent(keys.certificate, 'Bob').then((response) => {
-            console.log(response.buffer)
+            if (response.statusCode === 200) {
+                res.send("Public stored!")
+            }
         })
     })
 }
+
 function storepublickeyontrent(key, from) {
     var myJSONObject = {
         key: key,
-        from: from    
+        from: from
     }
     return new Promise((resolve, reject) => {
         request({
@@ -79,7 +78,7 @@ function storepublickeyontrent(key, from) {
         console.log(err)
     })
 }
- 
+
 
 function generateresponse(encryptedtopublickeyandtoidentity, frompublickey) {
 
@@ -110,5 +109,6 @@ function encryptwithpublickey(publicKey, data) {
 }
 
 module.exports = {
-    storepublickeyontrent: storepublickeyontrent
+    storepublickeyontrent: storepublickeyontrent,
+    generatecert: generatecert
 }
