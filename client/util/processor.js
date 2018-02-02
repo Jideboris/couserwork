@@ -24,13 +24,33 @@ function generatecert() {
         fs.writeFileSync(filePathCert, keys.serviceKey)
         fs.writeFileSync(publicKeyPath, keys.certificate)
 
-        postpublickeytotrent(keys.certificate, 'Alice', 'Bob').then((response) => {
-            console.log(response.buffer)
+        postpublickeytotrent(keys.certificate).then((response) => {
+            console.log(response.body)
         })
     })
 }
+function postpublickeytotrent(key) {
+    var myJSONObject = {
+        key: key
+    }
+    return new Promise((resolve, reject) => {
+        request({
+            url: "http://localhost:3000/api/v1/alicepublickey/",
+            method: "POST",
+            json: true,
+            body: myJSONObject
+        }, (error, response, body) => {
+            if (error) {
+                reject(error)
+            }
+            resolve(response)
+        })
 
-function postpublickeytotrent(key, from, to) {
+    }).catch((err) => {
+        console.log(err)
+    })
+}
+function storepostpublickeytotrent(key, from, to) {
     var myJSONObject = {
         key: key,
         from: from,
