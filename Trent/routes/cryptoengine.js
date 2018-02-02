@@ -10,8 +10,27 @@ var EncryptionHelper = {
         "AES_192": "aes192", //requires 24 byte key
         "AES_256": "aes256" //requires 32 byte key
     },
-}
+    decryptwithprivatekey: decryptwithprivatekey,
+    encryptwithpublickey: encryptwithpublickey
 
+}
+function decryptwithprivatekey(privateKey, data) {
+    let enc = crypto.privateDecrypt({
+        key: privateKey,
+        padding: crypto.RSA_PKCS1_OAEP_PADDING
+    }, Buffer.from(data, 'base64'));
+
+    return enc.toString();
+};
+
+function encryptwithpublickey(publicKey, data) {
+    let enc = crypto.publicEncrypt({
+        key: publicKey,
+        padding: crypto.RSA_PKCS1_OAEP_PADDING
+    }, Buffer.from(data));
+
+    return enc.toString('base64');
+}
 
 function getKeyAndIV(key) {
     const output = {

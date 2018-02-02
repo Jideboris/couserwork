@@ -22,7 +22,54 @@ function storepublickeys(req, res) {
         res.status(500).send(err)
     }
 }
+function storealicepublickey(req, res) {
+    const output = {}
+    let key = req.body.key
+    const alicepublickeypath = path.resolve('./public/keys/Alice.cert')
+    const alicetrentsessionkeypath = path.resolve('./public/keys/Alice-Symmetric.key')
+    const alicetrentivkeypath = path.resolve('./public/keys/Alice-IV.key')
 
+    fs.writeFileSync(alicepublickeypath, key)
+
+    let sessionkey = generateSymmetricKey()
+    let ivkey = generateIV()
+
+    fs.writeFileSync(alicetrentsessionkeypath, sessionkey.toString('base64'))
+
+    fs.writeFileSync(alicetrentivkeypath, ivkey.toString('base64'))
+
+    let tobeencryptedforalice = sessionkey + '|' + ivkey
+
+    let afterencryptedwithalicepublickey = encryptionHelper.encryptwithpublickey(key, tobeencryptedforalice)
+
+    console.log(afterencryptedwithalicepublickey)
+
+    res.send(afterencryptedwithalicepublickey)
+
+}
+function storebobpublickey(req, res) {
+    const output = {}
+    let key = req.body.key
+    const bobpublickeypath = path.resolve('./public/keys/Bob', + '.cert')
+    const bobtrentsessionkeypath = path.resolve('./public/keys/Bob-Symmetric', + '.key')
+    const bobtrentivkeypath = path.resolve('./public/keys/Bob-IV', + '.key')
+
+    fs.writeFileSync(bobpublickeypath, key)
+
+    let sessionkey = generateSymmetricKey()
+    let ivkey = generateIV()
+
+    fs.writeFileSync(bobtrentsessionkeypath, sessionkey.toString('base64'))
+
+    fs.writeFileSync(bobtrentivkeypath, ivkey.toString('base64'))
+
+    let tobeencryptedforbob = sessionkey + '|' + ivkey
+
+    let afterencryptedwithbobpublickey = encryptionHelper.encryptwithpublickey(key, tobeencryptedforbob)
+    console.log(afterencryptedwithbobpublickey)
+
+    res.send(afterencryptedwithbobpublickey)
+}
 function preparestorepublickeys(req, res) {
     try {
         let key = req.body.key
@@ -50,14 +97,14 @@ function preparestorepublickeys(req, res) {
         console.log("encrypted text = " + tobeforwardedtobob)
         var decText = encryptionHelper.decryptText(algorithm, sessionkey, ivkey, tobeforwardedtobob, "base64")
         console.log("decrypted text = " + decText)
-          let tobeforwardedtobob = encryptwithsymmetrickey('Jide', sessionkey, generateSymmetricKey())
+        let tobeforwardedtobob = encryptwithsymmetrickey('Jide', sessionkey, generateSymmetricKey())
         let foralicetodescryptandforward = tobeforwardedtobob + '|' + sessionkey
         let encryptforalicetodecryt = encryptwithpublickey(key, foralicetodescryptandforward)
-         let todecrypted = decrypt(tobeforwardedtobob)
-         console.log(tobeforwardedtobob)
-         console.log(todecrypted.toString('utf-8'))
+        let todecrypted = decrypt(tobeforwardedtobob)
+        console.log(tobeforwardedtobob)
+        console.log(todecrypted.toString('utf-8'))
 
-         res.status(200).send(tobeforwardedtobob)
+        res.status(200).send(tobeforwardedtobob)
 
     } catch (err) {
         console.log('error----->' + err)
@@ -81,26 +128,10 @@ function generateIV() {
     return crypto.randomBytes(16) //.toString('base64')
 }
 
-function decryptwithprivatekey(privateKey, data) {
-    let enc = crypto.privateDecrypt({
-        key: privateKey,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING
-    }, Buffer.from(data, 'base64'));
-
-    return enc.toString();
-};
-
-function encryptwithpublickey(publicKey, data) {
-    let enc = crypto.publicEncrypt({
-        key: publicKey,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING
-    }, Buffer.from(data));
-
-    return enc.toString('base64');
-}
-
 module.exports = {
     preparestorepublickeys: preparestorepublickeys,
-    storepublickeys: storepublickeys
+    storepublickeys: storepublickeys,
+    storealicepublickey: storealicepublickey,
+    storebobpublickey: storebobpublickey,
 
 }

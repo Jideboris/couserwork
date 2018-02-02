@@ -24,8 +24,8 @@ app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-
-//app.get('/api/v1/storepublickey', digcert.getdigitalcert);
+app.post('/api/v1/alicepublickey', processor.storealicepublickey)
+app.post('/api/v1/bobpublickey', processor.storebobpublickey)
 
 app.post('/api/v1/storepublickey', processor.preparestorepublickeys)
 app.post('/api/v1/frompublickey', processor.storepublickeys)
