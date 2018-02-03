@@ -1,19 +1,32 @@
-const {
-    encrypt,
-    decrypt
-} = require('./symmetricengine')
-const rsaWrapper = require('./rsa-wrapper')
+const encryptionHelper = require('./cryptoengine')
 const path = require('path')
 const pem = require('pem')
 const fs = require('fs')
 const request = require('request')
 const crypto = require('crypto')
-const filePathCert = path.resolve('./public/keys', 'Alice' + '.key')
-const publicKeyPath = path.resolve('./public/keys', 'Alice' + '.cert')
- 
-const processors = {};
 
-function generatecert() {
+const privateKeyPath = path.resolve('./public/keys/Alice.key')
+const publicKeyPath = path.resolve('./public/keys/Alice.cert')
+const alicesymmetrickeypath = path.resolve('./public/keys/Alice-SymmetricKey.key')
+const aliceivkeypath = path.resolve('./public/keys/Alice-IV.key')
+
+const processors = {}
+
+function requestbobpublickey() {
+    return new Promise((resolve, reject) => {
+        request.get('http://localhost:3000/api/v1/retrievebobpublickey/').on('response', (response) =>  { 
+            console.log(response.body)    
+            console.log(response.statusCode)      
+        }).on('error',  function (err)  {    
+            console.log(err)  
+        })
+
+    }).catch((err) => {
+        console.log(err)
+    })
+}
+
+function generatecert(req, res) {
     pem.createCertificate({
         days: 365,
         selfSigned: true
@@ -21,14 +34,22 @@ function generatecert() {
         if (err) {
             throw err
         }
-        fs.writeFileSync(filePathCert, keys.serviceKey)
+        fs.writeFileSync(privateKeyPath, keys.serviceKey)
         fs.writeFileSync(publicKeyPath, keys.certificate)
 
         postpublickeytotrent(keys.certificate).then((response) => {
-            console.log(response.body)
+            let tobestorebyaliceforcommwithtrent = encryptionHelper.decryptwithprivatekey(response.body, privateKeyPath)
+            let sessionkey = tobestorebyaliceforcommwithtrent.split('|')[0]
+            let ivkey = tobestorebyaliceforcommwithtrent.split('|')[1]
+
+            fs.writeFileSync(alicesymmetrickeypath, sessionkey)
+            fs.writeFileSync(aliceivkeypath, ivkey)
+
+            res.status(200).send('ALICE IS READY!!!')
         })
     })
 }
+
 function postpublickeytotrent(key) {
     var myJSONObject = {
         key: key
@@ -50,6 +71,7 @@ function postpublickeytotrent(key) {
         console.log(err)
     })
 }
+
 function storepostpublickeytotrent(key, from, to) {
     var myJSONObject = {
         key: key,
@@ -166,6 +188,7 @@ function validateCert() {
 module.exports = {
     validateCert: validateCert,
     generatecertificateandsymeetrickeys: generatecertificateandsymeetrickeys,
-    generatecert: generatecert
+    generatecert: generatecert,
+    requestbobpublickey: requestbobpublickey
 
-};
+}
