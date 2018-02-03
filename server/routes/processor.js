@@ -1,11 +1,15 @@
+const encryptionHelper = require('./cryptoengine')
 const path = require('path')
 const request = require('request')
 const pem = require('pem')
 const fs = require('fs')
 
 const crypto = require('crypto')
-const filePathCert = path.resolve('./public/keys', 'bob' + '.key')
-const publicKeyPath = path.resolve('./public/keys', 'bob' + '.cert')
+
+const privateKeyPath = path.resolve('./public/keys/Bob.key')
+const publicKeyPath = path.resolve('./public/keys/Bob.cert')
+const bobsymmetrickeypath = path.resolve('./public/keys/Bob-SymmetricKey.key')
+const bobivkeypath = path.resolve('./public/keys/Bob-IV.key')
 
 const algoritmn = 'AES-256-CBC'
 const hmacalgo = 'SHA256'
@@ -45,31 +49,35 @@ function generatecert(req, res) {
         if (err) {
             throw err
         }
-        fs.writeFileSync(filePathCert, keys.serviceKey)
+        fs.writeFileSync(privateKeyPath, keys.serviceKey)
         fs.writeFileSync(publicKeyPath, keys.certificate)
 
-        storepublickeyontrent(keys.certificate, 'Bob').then((response) => {
-            if (response.statusCode === 200) {
-                res.send("Public stored!")
-            }
+        postpublickeytotrent(keys.certificate).then((response) => {
+            let tobestorebybobforcommwithtrent = encryptionHelper.decryptwithprivatekey(response.body, privateKeyPath)
+            let sessionkey = tobestorebybobforcommwithtrent.split('|')[0]
+            let ivkey = tobestorebybobforcommwithtrent.split('|')[1]
+
+            fs.writeFileSync(bobsymmetrickeypath, sessionkey)
+            fs.writeFileSync(bobivkeypath, ivkey)
+
+            res.status(200).send('BOB IS READY!!!')
         })
     })
 }
 
-function storepublickeyontrent(key, from) {
+function postpublickeytotrent(key) {
     var myJSONObject = {
-        key: key,
-        from: from
+        key: key
     }
     return new Promise((resolve, reject) => {
         request({
-            url: "http://localhost:3000/api/v1/frompublickey/",
+            url: "http://localhost:3000/api/v1/bobpublickey/",
             method: "POST",
             json: true,
             body: myJSONObject
         }, (error, response, body) => {
             if (error) {
-                reject(new Error('Failed to load page, status code: ' + response.statusCode));
+                reject(error)
             }
             resolve(response)
         })
@@ -109,6 +117,6 @@ function encryptwithpublickey(publicKey, data) {
 }
 
 module.exports = {
-    storepublickeyontrent: storepublickeyontrent,
+   // storepublickeyontrent: storepublickeyontrent,
     generatecert: generatecert
 }
