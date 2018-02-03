@@ -27,7 +27,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/v1/alicepublickey', processor.storealicepublickey)
 app.post('/api/v1/bobpublickey', processor.storebobpublickey)
 
-app.post('/api/v1/storepublickey', processor.preparestorepublickeys)
+app.get('/api/v1/retrievebobpublickey', processor.getbobpublickeys)
 app.post('/api/v1/frompublickey', processor.storepublickeys)
 
 // If no route is matched by now, it must be a 404

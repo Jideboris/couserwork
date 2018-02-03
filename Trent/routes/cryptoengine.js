@@ -1,6 +1,7 @@
-
-var crypto = require("crypto");
-var EncryptionHelper = {
+const crypto = require("crypto")
+const path = require("path")
+const fs = require("fs")
+const EncryptionHelper = {
     getKeyAndIV: getKeyAndIV,
     encryptText: encryptText,
     decryptText: decryptText,
@@ -14,23 +15,23 @@ var EncryptionHelper = {
     encryptwithpublickey: encryptwithpublickey
 
 }
-function decryptwithprivatekey(privateKey, data) {
-    let enc = crypto.privateDecrypt({
-        key: privateKey,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING
-    }, Buffer.from(data, 'base64'));
 
-    return enc.toString();
-};
-
-function encryptwithpublickey(publicKey, data) {
-    let enc = crypto.publicEncrypt({
-        key: publicKey,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING
-    }, Buffer.from(data));
-
-    return enc.toString('base64');
+function encryptwithpublickey(toEncrypt, relativeOrAbsolutePathToPublicKey) {
+    let absolutePath = path.resolve(relativeOrAbsolutePathToPublicKey)
+    let publicKey = fs.readFileSync(absolutePath, "utf8")
+    let buffer = new Buffer(toEncrypt)
+    let encrypted = crypto.publicEncrypt(publicKey, buffer)
+    return encrypted.toString("base64")
 }
+
+function decryptwithprivatekey(toDecrypt, relativeOrAbsolutePathtoPrivateKey) {
+    var absolutePath = path.resolve(relativeOrAbsolutePathtoPrivateKey)
+    var privateKey = fs.readFileSync(absolutePath, "utf8")
+    var buffer = new Buffer(toDecrypt, "base64")
+    var decrypted = crypto.privateDecrypt(privateKey, buffer)
+    return decrypted.toString("utf8")
+}
+
 
 function getKeyAndIV(key) {
     const output = {
