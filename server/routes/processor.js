@@ -1,3 +1,4 @@
+
 const encryptionHelper = require('./cryptoengine')
 const path = require('path')
 const request = require('request')
@@ -6,6 +7,8 @@ const fs = require('fs')
 
 const crypto = require('crypto')
 
+const noucefromalicepath = path.resolve('./public/keys/nounceA.txt')
+const noucebpath = path.resolve('./public/keys/nounceB.txt')
 const privateKeyPath = path.resolve('./public/keys/Bob.key')
 const publicKeyPath = path.resolve('./public/keys/Bob.cert')
 const bobsymmetrickeypath = path.resolve('./public/keys/Bob-SymmetricKey.key')
@@ -64,7 +67,61 @@ function generatecert(req, res) {
         })
     })
 }
+function processfromalice(req, res) {
+    let forbob = req.body.forbob
+    let nouceandalice = encryptionHelper.decryptwithprivatekey(forbob, privateKeyPath)
+    let na = nouceandalice.split('|')[0]
+    let alice = nouceandalice.split('|')[1]
 
+    fs.writeFileSync(noucefromalicepath, na)
+
+    let tosendtotrent = 'Bob' + '|' + alice
+
+    let bobaliceencryptionfortrent = encryptionHelper.encrypt(tosendtotrent)
+
+    console.log(bobaliceencryptionfortrent)
+
+    postalicebobtotrentfrombobo(bobaliceencryptionfortrent).then((resp) => {
+        //resp is encrpted alice public key with symmtric key
+        const alicepublickeyforbobpath = path.resolve('./public/keys/Alice.cert')
+        let alicepublickey = encryptionHelper.decrypt(resp.body)
+        let pubickeyofalice = alicepublickey.split('|')[0]
+        console.log(pubickeyofalice)
+        fs.writeFileSync(alicepublickeyforbobpath, pubickeyofalice)
+
+        let noucebob = Math.random()
+        let nouncealice = fs.readFileSync(noucefromalicepath)
+
+        fs.writeFileSync(noucebpath, noucebob)
+
+        let sendtoalicenounceaandbwithbob = nouncealice + '|' + noucebob + '|' + 'Bob'
+        let banktoalice = encryptionHelper.encryptwithpublickey(sendtoalicenounceaandbwithbob, alicepublickeyforbobpath)
+        res.send(banktoalice)
+    })
+
+
+}
+function postalicebobtotrentfrombobo(key) {
+    var myJSONObject = {
+        boboalice: key
+    }
+    return new Promise((resolve, reject) => {
+        request({
+            url: "http://localhost:3000/api/v1/boboalicefrombob/",
+            method: "POST",
+            json: true,
+            body: myJSONObject
+        }, (error, response, body) => {
+            if (error) {
+                reject(error)
+            }
+            resolve(response)
+        })
+
+    }).catch((err) => {
+        console.log(err)
+    })
+}
 function postpublickeytotrent(key) {
     var myJSONObject = {
         key: key
@@ -86,37 +143,33 @@ function postpublickeytotrent(key) {
         console.log(err)
     })
 }
-
-
-function generateresponse(encryptedtopublickeyandtoidentity, frompublickey) {
-
-}
-
 function generateSymmetricKey() {
     var generatedKey = crypto.randomBytes(32).toString('base64');
     return generatedKey;
 
 }
 
-function decryptwithprivatekey(privateKey, data) {
-    let enc = crypto.privateDecrypt({
-        key: privateKey,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING
-    }, Buffer.from(data, 'base64'));
-
-    return enc.toString();
-};
-
-function encryptwithpublickey(publicKey, data) {
-    let enc = crypto.publicEncrypt({
-        key: publicKey,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING
-    }, Buffer.from(data));
-
-    return enc.toString('base64');
+function checkandvalidnounceb(req, res) {
+    let encryptednounce = req.body.nb
+    let decryptednounce = encryptionHelper.decryptwithprivatekey(encryptednounce, privateKeyPath)
+    let output = ''
+    console.log('--------------------')
+    // let nounce = new Buffer(storenounce, 'utf-8');
+    fs.readFile(noucebpath, 'utf8', (err, data) => {
+        if (err) throw err;
+        if (data === decryptednounce) {
+            console.log('passed')
+            output = 'WELDONE EXCHANGE HAS COMPLETED!!!'
+        }
+        else {
+            output = 'FAILED!!!'
+        }
+        return res.send(output)
+    })
+    
 }
-
 module.exports = {
-   // storepublickeyontrent: storepublickeyontrent,
-    generatecert: generatecert
+    processfromalice: processfromalice,
+    generatecert: generatecert,
+    checkandvalidnounceb: checkandvalidnounceb
 }

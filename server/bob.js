@@ -24,6 +24,8 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.get('/', processor.generatecert)
+app.post('/api/v1/processfromalice', processor.processfromalice)
+app.post('/api/v1/encryptednounceb', processor.checkandvalidnounceb)
 
 
 // If no route is matched by now, it must be a 404

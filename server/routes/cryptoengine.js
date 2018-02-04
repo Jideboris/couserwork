@@ -1,6 +1,8 @@
 const crypto = require("crypto")
 const path = require("path")
 const fs = require("fs")
+const algorithm = 'aes-256-ctr'
+const password = 'd6F3Efeq'
 const EncryptionHelper = {
     encryptText: encryptText,
     decryptText: decryptText,
@@ -11,10 +13,24 @@ const EncryptionHelper = {
         "AES_256": "aes256" //requires 32 byte key
     },
     decryptwithprivatekey: decryptwithprivatekey,
-    encryptwithpublickey: encryptwithpublickey
+    encryptwithpublickey: encryptwithpublickey,
+    encrypt: encrypt,
+    decrypt: decrypt
 
 }
+function encrypt(text) {
+    var cipher = crypto.createCipher(algorithm, password)
+    var crypted = cipher.update(text, 'utf8', 'hex')
+    crypted += cipher.final('hex');
+    return crypted;
+}
 
+function decrypt(text) {
+    var decipher = crypto.createDecipher(algorithm, password)
+    var dec = decipher.update(text, 'hex', 'utf8')
+    dec += decipher.final('utf8');
+    return dec;
+}
 function encryptwithpublickey(toEncrypt, relativeOrAbsolutePathToPublicKey) {
     let absolutePath = path.resolve(relativeOrAbsolutePathToPublicKey)
     let publicKey = fs.readFileSync(absolutePath, "utf8")
