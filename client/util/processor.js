@@ -10,19 +10,38 @@ const publicKeyPath = path.resolve('./public/keys/Alice.cert')
 const alicesymmetrickeypath = path.resolve('./public/keys/Alice-SymmetricKey.key')
 const aliceivkeypath = path.resolve('./public/keys/Alice-IV.key')
 
+const bobpublicKeyPath = path.resolve('./public/keys/Bob.cert')
+
 const processors = {}
 
-function requestbobpublickey() {
-    return new Promise((resolve, reject) => {
-        request.get('http://localhost:3000/api/v1/retrievebobpublickey/').on('response', (response) =>  { 
-            console.log(response.body)    
-            console.log(response.statusCode)      
-        }).on('error',  function (err)  {    
-            console.log(err)  
-        })
+function requestbobpublickey(req, res) {
+    request('http://localhost:3000/api/v1/retrievebobpublickey', function (err, response, body) {
+        var decText = encryptionHelper.decrypt(body).split('|')
+        console.log("decrypted text = " + decText)
+        fs.writeFileSync(bobpublicKeyPath, decText[0])
 
-    }).catch((err) => {
-        console.log(err)
+        postnounceandidentitytobobwithitspublickey().then((resp) => {
+            let toextractnouncebforbob = encryptionHelper.decryptwithprivatekey(resp.body, privateKeyPath)
+
+            let na = toextractnouncebforbob.split('|')[0]
+            let nb = toextractnouncebforbob.split('|')[1]
+            let confirmbob = toextractnouncebforbob.split('|')[2]
+
+            console.log('-------------')
+            console.log(na)
+            console.log('-------------')
+            console.log(nb)
+            console.log('-------------')
+            console.log(confirmbob)
+            let encrytednounceb = encryptionHelper.encryptwithpublickey(nb, bobpublicKeyPath)
+
+           // console.log(encrytednounceb)
+
+            postnouncebtobobtovalidatepublikey(encrytednounceb).then((response) => {
+                console.log(response.body)
+                res.send(response.body)
+            })
+        })
     })
 }
 
@@ -49,7 +68,32 @@ function generatecert(req, res) {
         })
     })
 }
+function postnounceandidentitytobobwithitspublickey() {
+    const bobpublickeypath = path.resolve('./public/keys/Bob.cert')
+    let nounceA = Math.random()
+    let data = nounceA + '|' + 'Alice'
 
+    let nounceandalice = encryptionHelper.encryptwithpublickey(data, bobpublickeypath)
+    var myJSONObject = {
+        forbob: nounceandalice
+    }
+    return new Promise((resolve, reject) => {
+        request({
+            url: "http://localhost:9000/api/v1/processfromalice",
+            method: "POST",
+            json: true,
+            body: myJSONObject
+        }, (error, response, body) => {
+            if (error) {
+                reject(error)
+            }
+            resolve(response)
+        })
+
+    }).catch((err) => {
+        console.log(err)
+    })
+}
 function postpublickeytotrent(key) {
     var myJSONObject = {
         key: key
@@ -72,15 +116,13 @@ function postpublickeytotrent(key) {
     })
 }
 
-function storepostpublickeytotrent(key, from, to) {
+function postnouncebtobobtovalidatepublikey(encryptednounceb) {
     var myJSONObject = {
-        key: key,
-        from: from,
-        to: to
+        nb: encryptednounceb
     }
     return new Promise((resolve, reject) => {
         request({
-            url: "http://localhost:3000/api/v1/storepublickey/",
+            url: "http://localhost:9000/api/v1/encryptednounceb/",
             method: "POST",
             json: true,
             body: myJSONObject
@@ -96,98 +138,7 @@ function storepostpublickeytotrent(key, from, to) {
     })
 }
 
-function generatecertificateandsymeetrickeys(req, res) {
-    generatecert()
-    let publicKey = fs.readFileSync(publicKeyPath)
-    postpublickeytotrent(publicKey, 'Alice', 'Bob').then((response) => {
-        // session key from Trent
-        console.log(response)
-        res.send(response)
-
-        //console.log(publicKey.toString('base64'))
-
-        // let publicKey = fs.readFileSync(publicKeyPath)
-        //  console.log(publicKey.toString('base64'))
-        // const result = http.get('http://localhost:3000/api/v1/getcontent', (resp) => {
-        //     let data = '';
-        //     // A chunk of data has been recieved.
-        //     resp.on('data', (chunk) => {
-        //         data += chunk;
-        //     });
-        //     resp.on('end', () => {
-        //         var output = JSON.parse(data)
-        //         //temporily save certificate prrior verification
-        //         fs.writeFileSync(filePath, output.digitalcert);
-        //         //validate if certificate is valid
-        //         var isCertificateValid = validateCert();
-        //         if (isCertificateValid) {
-        //             //generate sessioned symmetric key in base64
-        //             var sessionKey = generateSymmetricKey();
-        //             //generate another to hash cipher-text
-        //             var hmacKey = generateSymmetricKey();
-        //             //write session key to file-different for each session
-        //             fs.writeFileSync(sessionedSymmetricKeyPath, sessionKey)
-        //             //wite hmac key to file
-        //             fs.writeFileSync(hmacKeyPath, hmacKey);
-        //             //encrypt the session key with server certificate public key and send to server
-        //             //generate timestamp to verify freshness
-        //             var currentTime = new Date()
-        //             //include timestamp to check the freshness with the key and hmac key
-        //             var sessionKeyPlusTimeStamp = sessionKey + '|' + currentTime + '|' + hmacKey + '|' + 'S' + '|' + 'C';
-        //             //get or read public key from file
-        //             var publicKey = fs.readFileSync(filePath);
-        //             //encrypt session key
-        //             var encryptedSessionKeyWithPublicKey = rsaWrapper.encrypt(publicKey, sessionKeyPlusTimeStamp);
-        //             // send the encryptedSessionKeyWithPublicKey to server
-        //             var abc = postencryptedsessionedkeywithserverpublickey(encryptedSessionKeyWithPublicKey).then((response) => {
-        //                 var item = JSON.parse(response);
-        //                 //get the session key buffer format 
-        //                 var buf = Buffer.from(sessionKey, 'base64')
-        //                 //get hmac key
-        //                 var bufHmac = Buffer.from(hmacKey, 'base64')
-        //                 if (item == -1) {
-        //                     resolve("sender or recipient is not valid")
-        //                 }
-        //                 else {
-        //                     //decrypt to get message from server
-        //                     var decp = decrypt(item.output, buf, bufHmac)
-        //                     message = decp;
-        //                     resolve(decp)
-        //                 }
-
-        //             });
-        //         }
-        //         else {
-        //             resolve("sender or recipient is not valid")
-        //         }
-
-        //     });
-
-        // }).on("error", (err) => {
-        //     console.log("Error: " + err.message);
-        // });
-        // result.on('error', (err) => reject(err))
-    });
-
-
-
-}
-
-function validateCert() {
-    var cert = x509.parseCert(filePath),
-        date = new Date();
-
-    if (cert.notAfter > date) {
-        return true;
-    }
-    return false;
-
-}
-
-
 module.exports = {
-    validateCert: validateCert,
-    generatecertificateandsymeetrickeys: generatecertificateandsymeetrickeys,
     generatecert: generatecert,
     requestbobpublickey: requestbobpublickey
 
