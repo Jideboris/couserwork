@@ -28,6 +28,7 @@ app.post('/api/v1/alicepublickey', processor.storealicepublickey)
 app.post('/api/v1/bobpublickey', processor.storebobpublickey)
 
 app.get('/api/v1/retrievebobpublickey', processor.getbobpublickeys)
+app.post('/api/v1/boboalicefrombob', processor.getboboalicefrombob)
 app.post('/api/v1/frompublickey', processor.storepublickeys)
 
 // If no route is matched by now, it must be a 404

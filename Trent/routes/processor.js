@@ -70,7 +70,28 @@ function storebobpublickey(req, res) {
 
     res.send(afterencryptedwithbobpublickey)
 }
+function getboboalicefrombob(req, res) {
+    let boboalice = req.body.boboalice
+    let boboalicedecrypted = encryptionHelper.decrypt(boboalice)
+    let conalicebob = boboalicedecrypted.split('|')[1]
+    //console.log(conalicebob)
 
+    const alicepublickeypath = path.resolve('./public/keys/Alice.cert')
+    const bobpublickeypath = path.resolve('./public/keys/Bob.cert')
+
+    let alicepublickey = fs.readFileSync(alicepublickeypath)
+
+    //console.log(alicepublickey)
+
+    let tosentobob = alicepublickey + '|' + conalicebob
+
+    let alicepublicekeyidentity = encryptionHelper.encrypt(tosentobob, bobpublickeypath)
+
+    console.log(alicepublicekeyidentity)
+
+    res.send(alicepublicekeyidentity)
+
+}
 function getbobpublickeys(req, res) {
     try {
         const bobpublickeypath = path.resolve('./public/keys/Bob.cert')
@@ -80,19 +101,8 @@ function getbobpublickeys(req, res) {
         let topublickey = fs.readFileSync(bobpublickeypath)
         let publickeyandbobidentity = topublickey + '|' + 'Bob'
 
-        let sessionkey = fs.readFileSync(alicetrentsessionkeypath)
-        let ivkey = fs.readFileSync(alicetrentivkeypath)
-        let v = generateIV()
-        let s = Buffer.from(sessionkey, 'base64')
-        console.log(v.toString('base64'))
-        console.log(s)
-        var tobeforwardedtobob = encryptionHelper.encryptText(algorithm, s, v, publickeyandbobidentity, "base64")
-        console.log("encrypted text = " + tobeforwardedtobob)
-        var decText = encryptionHelper.decryptText(algorithm, s, v, tobeforwardedtobob, "base64")
-        console.log("decrypted text = " + decText)
-
-        // console.log(tobeforwardedtobob)
-        // console.log(todecrypted.toString('utf-8'))
+        var tobeforwardedtobob = encryptionHelper.encrypt(publickeyandbobidentity)
+        //  console.log("encrypted text = " + tobeforwardedtobob)
 
         res.status(200).send(tobeforwardedtobob)
 
@@ -100,11 +110,6 @@ function getbobpublickeys(req, res) {
         console.log('error----->' + err)
         res.status(500).send(err)
     }
-
-}
-
-function generateresponse(encryptedtopublickeyandtoidentity, frompublickey) {
-
 }
 
 function generateSymmetricKey() {
@@ -122,6 +127,7 @@ module.exports = {
     storepublickeys: storepublickeys,
     storealicepublickey: storealicepublickey,
     storebobpublickey: storebobpublickey,
-    getbobpublickeys: getbobpublickeys
+    getbobpublickeys: getbobpublickeys,
+    getboboalicefrombob: getboboalicefrombob
 
 }
